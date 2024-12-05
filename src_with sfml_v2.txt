@@ -78,7 +78,7 @@ unordered_map<int, sf::Vector2f> node_positions; // Map node indices to position
 
 int main() {
     // Data structures to store the graph
-    unordered_map<string, int> node_indices;             // Map node names to indices
+    map<string, int> node_indices;             // Map node names to indices
     vector<string> node_names;                           // List of node names
     vector<vector<pair<int, int>>> graph;                // Adjacency list representation of the graph
 
@@ -91,8 +91,7 @@ int main() {
 
     // Input loop for adding connections
     while (true) {
-        string from_node;
-        string to_node;
+        string from_node, to_node;
         int weight;
 
         // Display input messages
@@ -100,7 +99,7 @@ int main() {
         cout << YELLOW << "Type 'Done' in any input to finish input new connection.\n" << RESET;
 
         // Prompt for inputs using helper functions
-        if (!get_node_input("From Node: ", from_node)) break;
+        if (!get_node_input("From Node: ", from_node)) break; // Exit loop if 'Done' is entered
         if (!get_node_input("To Node: ", to_node))     break;
 
         // Prevent self-loops
@@ -173,8 +172,14 @@ int main() {
         cout << GREEN << "Enter the source node: " << RESET;
         getline(cin, source_node_name);
 
-        // Trim whitespace from the source node name
-        source_node_name.erase(remove_if(source_node_name.begin(), source_node_name.end(), ::isspace), source_node_name.end());
+        // Trim whitespace from the source node name manually using isspace()
+        string trimmed_source_node_name = "";
+        for (char c : source_node_name) {
+            if (!isspace(c)) {
+                trimmed_source_node_name += c; // Append non-whitespace characters
+            }
+        }
+        source_node_name = trimmed_source_node_name;
 
         // Check if the source node name is empty
         if (source_node_name.empty()) {
@@ -196,8 +201,14 @@ int main() {
         cout << GREEN << "Enter the destination node: " << RESET;
         getline(cin, dest_node_name);
 
-        // Trim whitespace from the destination node name
-        dest_node_name.erase(remove_if(dest_node_name.begin(), dest_node_name.end(), ::isspace), dest_node_name.end());
+        // Trim whitespace from the destination node name manually using isspace()
+        string trimmed_dest_node_name = "";
+        for (char c : dest_node_name) {
+            if (!isspace(c)) {
+                trimmed_dest_node_name += c; // Append non-whitespace characters
+            }
+        }
+        dest_node_name = trimmed_dest_node_name;
 
         // Check if the destination node name is empty
         if (dest_node_name.empty()) {
@@ -227,56 +238,70 @@ int main() {
     return 0;
 }
 
-// Function to get a valid node name from the user
+// ---------------------------- Helper functions ------------------------------
 bool get_node_input(const string& prompt, string& node_name) {
     cout << prompt;
     getline(cin, node_name);
 
+    // Remove whitespace characters
+    string cleaned_node_name = "";
+    for (char c : node_name) {
+        if (!isspace(c))    cleaned_node_name += c; // Append non-whitespace characters
+    }
+
     // Check if the user wants to finish input
-    string node_name_trimmed = to_lower_trimmed(node_name);
+    string node_name_trimmed = to_lower_trimmed(cleaned_node_name);
     if (node_name_trimmed == "done") return false;
 
-    // Remove whitespace
-    node_name.erase(remove_if(node_name.begin(), node_name.end(), ::isspace), node_name.end());
-
     // Check if the node name is empty
-    if (node_name.empty()) {
+    if (cleaned_node_name.empty()) {
         cout << RED << "Invalid input! Node name cannot be empty." << RESET << endl;
         return get_node_input(prompt, node_name);  // Prompt again if input is empty
     }
+    node_name = cleaned_node_name; // Update the original string
     return true;  // Valid node name entered
 }
 
-// Function to get a valid weight from the user
 bool get_weight_input(const string& prompt, int& weight) {
     cout << prompt;
     string weight_str;
     getline(cin, weight_str);
 
+    // Remove all whitespace characters manually
+    string cleaned_weight_str = "";
+    for (char c : weight_str) {
+        if (!isspace(c)) cleaned_weight_str += c; // Append non-whitespace characters
+    }
+
     // Check if the user wants to finish input
-    string weight_trimmed = to_lower_trimmed(weight_str);
+    string weight_trimmed = to_lower_trimmed(cleaned_weight_str);
     if (weight_trimmed == "done") return false;
 
-    // Remove whitespace
-    weight_str.erase(remove_if(weight_str.begin(), weight_str.end(), ::isspace), weight_str.end());
-
-    // Check if the weight input is empty
-    if (weight_str.empty()) {
+    // Check if the weight input is empty after removing whitespaces
+    if (weight_trimmed.empty()) {
         cout << RED << "Invalid input! Weight cannot be empty." << RESET << endl;
         return get_weight_input(prompt, weight);  // Prompt again if input is empty
     }
 
-    // Check if weight is a valid integer
-    try {
-        weight = stoi(weight_str);
-    } catch (const invalid_argument&) {
+    // Validate if weight_trimmed contains only digits (valid integer)
+    bool is_valid_number = true;
+    for (char c : weight_trimmed) {
+        if (!isdigit(c)) {
+            is_valid_number = false;
+            break;
+        }
+    }
+
+    if (!is_valid_number) {
         cout << RED << "Invalid input! Weight must be a number." << RESET << endl;
         return get_weight_input(prompt, weight);  // Prompt weight again
     }
+
+    // Convert to integer since input is validated as numeric
+    weight = stoi(weight_trimmed);
     return true;  // Valid weight entered
 }
 
-// ---------------------------- Helper functions ------------------------------
 // Helper function to remove whitespace and convert string to lowercase
 string to_lower_trimmed(const string& str) {
     string result = "";
@@ -289,6 +314,7 @@ string to_lower_trimmed(const string& str) {
 }
 
 // ------------------------- Dijkstra's algorithm ------------------------
+
 // Function to initialize the cost and previous node arrays
 void initialize(int source, vector<int>& cost, vector<int>& previous) {
     for (size_t i = 0; i < cost.size(); i++) {
@@ -321,8 +347,8 @@ int select_next_node(const vector<int>& cost, const vector<bool>& visited) {
 }
 
 // Function to display the current state of the algorithm
-void display_state(const vector<int> &cost, const vector<int> &previous, const vector<bool> &visited,
-                   int current_node, int step, const vector<string> &node_names) {
+void display_state(const vector<int>& cost, const vector<int>& previous, const vector<bool>& visited,
+                   int current_node, int step, const vector<string>& node_names) {
 
     cout << CLEAR_SCREEN;    // Clear the console screen
     cout << CYAN << "Dijkstra's Algorithm - Step " << step << RESET << "\n\n";
@@ -407,32 +433,30 @@ void dijkstra(int source, int dest_index, const vector<vector<pair<int, int>>>& 
     cout << CYAN << "Final Results:\n" << RESET;
     cout << "Node\tCost\tPath\n";
     for (int i = 0; i < total_nodes; i++) {
-        if (i == source) {
-            cout << GREEN; // Start green color for source node
-        } else if (i == dest_index) {
-            cout << RED; // Start red color for destination node
-        }
+        if (i == dest_index)  cout << RED;    // Start red color for destination node
+        else if (i == source) cout << GREEN;  // Start green color for source node
         cout << node_names[i] << "\t";
-        if (cost[i] == infinity)     cout << "INF\t";
-        else                         cout << cost[i] << "\t";
 
-        // Reconstruct the path
+        if (cost[i] == infinity)   cout << "INF\t";
+        else                       cout << cost[i] << "\t";
+
+        // Reconstruct the path from source to current node
         vector<string> path;
         int prev = i;
         while (prev != -1) {
             path.push_back(node_names[prev]);
             prev = previous[prev];
         }
-        if (path.size() == 1) cout << "-";
+        if (path.size() == 1)       cout << "-";
         else {
             for (size_t k = path.size(); k > 0; k--) {
                 cout << path[k - 1];
-                if (k > 1)    cout << " -> ";
+                if (k > 1) cout << " -> ";
             }
         }
-        if (i == source || i == dest_index) {
-            cout << RESET; // Reset color after source/destination node line
-        }
+
+        // Reset color after printing the node
+        if (i == dest_index || i == source)    cout << RESET;
         cout << "\n";
     }
 

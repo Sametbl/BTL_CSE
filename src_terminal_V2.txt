@@ -209,65 +209,70 @@ while (true) {
 
 
 // ---------------------------- Helper functions ------------------------------
-
-// Function to get a valid node name from the user
 bool get_node_input(const string& prompt, string& node_name) {
     cout << prompt;
     getline(cin, node_name);
 
-    // Check if the user wants to finish input
-    string node_name_trimmed = to_lower_trimmed(node_name);
-    if (node_name_trimmed == "done") return false;
-
-    // Remove whitespace characters manually
+    // Remove whitespace characters
     string cleaned_node_name = "";
     for (char c : node_name) {
-        if (!isspace(c)) {
-            cleaned_node_name += c; // Append non-whitespace characters
-        }
+        if (!isspace(c))    cleaned_node_name += c; // Append non-whitespace characters
     }
-    node_name = cleaned_node_name; // Update the original string
 
+    // Check if the user wants to finish input
+    string node_name_trimmed = to_lower_trimmed(cleaned_node_name);
+    if (node_name_trimmed == "done") return false;
 
     // Check if the node name is empty
-    if (node_name.empty()) {
-        cout << RED << "Invalid input! Node name cannot be empty." << RESET << endl;
+    if (cleaned_node_name.empty()) {
+        cout << RED << "Invalisd input! Node name cannot be empty." << RESET << endl;
         return get_node_input(prompt, node_name);  // Prompt again if input is empty
     }
+    node_name = cleaned_node_name; // Update the original string
     return true;  // Valid node name entered
 }
+
 bool get_weight_input(const string& prompt, int& weight) {
     cout << prompt;
     string weight_str;
     getline(cin, weight_str);
 
-    // Check if the user wants to finish input
-    string weight_trimmed = to_lower_trimmed(weight_str);
-    if (weight_trimmed == "done") return false;
-
     // Remove all whitespace characters manually
     string cleaned_weight_str = "";
     for (char c : weight_str) {
-        if (!isspace(c)) {
-            cleaned_weight_str += c; // Append non-whitespace characters
-        }
+        if (!isspace(c)) cleaned_weight_str += c; // Append non-whitespace characters
     }
 
+    // Check if the user wants to finish input
+    string weight_trimmed = to_lower_trimmed(cleaned_weight_str);
+    if (weight_trimmed == "done") return false;
+
     // Check if the weight input is empty after removing whitespaces
-    if (cleaned_weight_str.empty()) {
+    if (weight_trimmed.empty()) {
         cout << RED << "Invalid input! Weight cannot be empty." << RESET << endl;
         return get_weight_input(prompt, weight);  // Prompt again if input is empty
     }
 
-    // Check if the cleaned weight is a valid integer
-    try {
-        weight = stoi(cleaned_weight_str);
-    } catch (const invalid_argument&) {
+
+    // Validate if weight_trimmed contains only digits (valid integer)
+    bool is_valid_number = true;
+    for (char c : weight_trimmed) {
+        if (!isdigit(c)) {
+            is_valid_number = false;
+            break;
+        }
+    }
+
+    if (!is_valid_number) {
         cout << RED << "Invalid input! Weight must be a number." << RESET << endl;
         return get_weight_input(prompt, weight);  // Prompt weight again
     }
+
+    // Convert to integer since input is validated as numeric
+    weight = stoi(weight_trimmed);
     return true;  // Valid weight entered
 }
+
 
 
 // Helper function to remove whitespace and convert string to lowercase
