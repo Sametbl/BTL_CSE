@@ -109,30 +109,48 @@ int main() {
 
         if (!get_weight_input("Weight of connection: ", weight)) break;
 
-        // Add node names to the set of unique node names
-        unique_node_names.insert(from_node);
-        unique_node_names.insert(to_node);
+        // If weight == -1, it means user entered "INF" to remove connection
+        {
+            string min_node = min(from_node, to_node);
+            string max_node = max(from_node, to_node);
+            pair<string, string> connection_key = make_pair(min_node, max_node);
 
-        // Prepare the unordered key for the connection (order doesn't matter)
-        string min_node = min(from_node, to_node);
-        string max_node = max(from_node, to_node);
-        pair<string, string> connection_key = make_pair(min_node, max_node);
+            if (weight == -1) {
+                // Remove the connection if it exists
+                if (connections.find(connection_key) != connections.end()) {
+                    connections.erase(connection_key);
+                    connection_summaries.erase(connection_key);
+                }
 
-        // Update the connection weight (overwrite if exists)
-        connections[connection_key] = weight;
+                cout << CLEAR_SCREEN;   // Clear the console screen
 
-        // Update the connection summary
-        string connection_summary = GREEN + min_node + RESET + " <---> " + GREEN + max_node + RESET +
-                                    " with weight = " + BRIGHT_BLUE + to_string(weight) + RESET;
-        connection_summaries[connection_key] = connection_summary;
+                // Display the updated summary of connections
+                cout << BRIGHT_CYAN << "Connections Summary:" << RESET << "\n";
+                for (const auto& summary : connection_summaries)
+                    cout << summary.second << "\n";
+                cout << "\n\n"; // Add spacing before the next input
+                continue; // Move to next input
+            }
+            // Otherwise, normal connection processing:
+            unique_node_names.insert(from_node);
+            unique_node_names.insert(to_node);
 
-        cout << CLEAR_SCREEN;   // Clear the console screen
+            // Update the connection weight (overwrite if exists)
+            connections[connection_key] = weight;
 
-        // Display the summary of connections so far
-        cout << BRIGHT_CYAN << "Connections Summary:" << RESET << "\n";
-        for (const auto& summary : connection_summaries)
-            cout << summary.second << "\n";
-        cout << "\n\n"; // Add spacing before the next input
+            // Update the connection summary
+            string connection_summary = GREEN + min_node + RESET + " <---> " + GREEN + max_node + RESET +
+                                        " with weight = " + BRIGHT_BLUE + to_string(weight) + RESET;
+            connection_summaries[connection_key] = connection_summary;
+
+            cout << CLEAR_SCREEN;   // Clear the console screen
+
+            // Display the summary of connections so far
+            cout << BRIGHT_CYAN << "Connections Summary:" << RESET << "\n";
+            for (const auto& summary : connection_summaries)
+                cout << summary.second << "\n";
+            cout << "\n\n"; // Add spacing before the next input
+        }
     }
 
     // Sort the node names alphabetically and create node indices
@@ -232,7 +250,16 @@ int main() {
     calculate_node_positions(window_width, window_height, total_nodes);
 
     // Run Dijkstra's algorithm from the specified source node
-    dijkstra(source_index, dest_index, graph, total_nodes, node_names);
+    while (true) {
+        dijkstra(source_index, dest_index, graph, total_nodes, node_names);
+        cout << "Run the animattion again ? (Yes/No) ";
+        string answer;
+        getline(cin, answer);
+        string ans_lower = to_lower_trimmed(answer);
+        if (ans_lower != "yes") {
+            break;
+        }
+    }
 
     return 0;
 }
@@ -276,6 +303,12 @@ bool get_weight_input(const string& prompt, int& weight) {
     string weight_trimmed = to_lower_trimmed(cleaned_weight_str);
     if (weight_trimmed == "done") return false;
 
+    // Check if user wants to remove a connection by typing INF
+    if (weight_trimmed == "inf") {
+        weight = -1; // Special marker for INF (removal)
+        return true;
+    }
+
     // Check if the weight input is empty after removing whitespaces
     if (weight_trimmed.empty()) {
         cout << RED << "Invalid input! Weight cannot be empty." << RESET << endl;
@@ -292,7 +325,7 @@ bool get_weight_input(const string& prompt, int& weight) {
     }
 
     if (!is_valid_number) {
-        cout << RED << "Invalid input! Weight must be a number." << RESET << endl;
+        cout << RED << "Invalid input! Weight must be a number or 'INF'." << RESET << endl;
         return get_weight_input(prompt, weight);  // Prompt weight again
     }
 
@@ -355,7 +388,7 @@ void display_state(const vector<int>& cost, const vector<int>& previous, const v
 
     for (size_t i = 0; i < cost.size(); i++) {
         // Highlight the current node
-        if (i == current_node) {
+        if (i == (size_t)current_node) {
             cout << GREEN << node_names[i] << "\t";
             cout << visited[i] << "\t";
             if (cost[i] == infinity)  cout << "INF\t";
@@ -423,7 +456,7 @@ void dijkstra(int source, int dest_index, const vector<vector<pair<int, int>>>& 
         draw_edges(window, graph, node_positions, visited, previous, dest_index, false);
 
         // Draw nodes
-        for (int i = 0; i < node_names.size(); ++i) {
+        for (int i = 0; i < (int)node_names.size(); ++i) {
             draw_node(window, i, node_names[i], node_positions.at(i), cost, current_node, source, dest_index, visited, previous, false, dest_index);
         }
 
@@ -456,7 +489,7 @@ void dijkstra(int source, int dest_index, const vector<vector<pair<int, int>>>& 
     draw_edges(window, graph, node_positions, visited, previous, dest_index, false);
 
     // Draw nodes
-    for (int i = 0; i < node_names.size(); ++i) {
+    for (int i = 0; i < (int)node_names.size(); ++i) {
         draw_node(window, i, node_names[i], node_positions.at(i), cost, -1, source, dest_index, visited, previous, false, dest_index);
     }
 
@@ -651,7 +684,7 @@ void draw_edges(sf::RenderWindow &window,
     sf::Font font;
     font.loadFromFile("arial.ttf");     // Load the arial font
 
-    for (int i = 0; i < graph.size(); ++i) {
+    for (int i = 0; i < (int)graph.size(); ++i) {
         for (const auto &neighbor : graph[i]) {
             int j = neighbor.first;   // Target Node index
             if (i < j) {              // Avoid duplicate edge: both A to B, and B to A
@@ -688,7 +721,7 @@ void draw_graph_with_shortest_path(sf::RenderWindow &window,
     draw_edges(window, graph, node_positions, dummy_visited, previous, dest_index, true);
 
     // Draw nodes, highlighting nodes in the shortest path
-    for (int i = 0; i < node_names.size(); ++i) {
+    for (int i = 0; i < (int)node_names.size(); ++i) {
         // We can pass dummy variables for current_node and visited since they are not relevant here
         draw_node(window, i, node_names[i], node_positions.at(i), cost, -1, source_index, dest_index, dummy_visited, previous, true, dest_index);
     }
